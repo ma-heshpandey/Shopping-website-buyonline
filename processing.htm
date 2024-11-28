@@ -1,0 +1,157 @@
+<!-- Name: Mahesh Pandey Id: 105108938 -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Processing Form</title>
+    <style>
+        body {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            padding: 50px;
+
+        }
+        table {
+            width: 80%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .process {
+            width: 50%;
+            margin: 20px auto;
+            text-align: center;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button[disabled] {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+        .nav a {
+            margin: 0 15px;
+            color: #6A0DAD;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <div class="nav" style="text-align:center;">
+        <a href="listing.htm">Listing</a>
+        <a href="processing.htm">Processing</a>
+        <a href="logout.php">Logout</a>
+        <hr>
+    </div>
+
+
+    <!-- Table to display items with non-zero sold quantities -->
+    <table>
+    <h2>Processing Form</h2>
+
+        <thead>
+            <tr>
+                <th>Item Number</th>
+                <th>Item Name</th>
+                <th>Price</th>
+                <th>Quantity Available</th>
+                <th>Quantity on Hold</th>
+                <th>Quantity Sold</th>
+            </tr>
+        </thead>
+        <tbody id="processingItems">
+            <!-- Rows will be dynamically inserted here via AJAX -->
+            
+        </tbody>
+        
+    </table>
+
+   
+
+    <script>
+
+         // Check if manager is logged in
+         function checkManagerLogin() {
+            fetch('manager_session.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.loggedIn) {
+                        // If the manager is not logged in, redirect to login page
+                        window.location.href = 'mlogin.htm';
+                    }
+                })
+                .catch(error => console.error('Error checking login:', error));
+        }
+
+
+        // Function to load items with non-zero sold quantities
+        function loadNonZeroSoldProcessingItems() {
+            fetch('get_processing_items.php')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('processingItems');
+                    tableBody.innerHTML = '';
+
+                    data.forEach(item => {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${item.id}</td>
+                                <td>${item.name}</td>
+                                <td>$${item.price}</td>
+                                <td>${item.quantityAvailable}</td>
+                                <td>${item.quantityOnHold}</td>
+                                <td>${item.quantitySold}</td>
+                            </tr>
+                        `;
+                    });
+                    tableBody.innerHTML +=`
+                    <tr style="background-color:#6c757d">
+                    <td colspan="6" style="text-align:center;">
+                        <button type="reset" class="reset-btn" id="processButton" onclick="processItems()">Process</button>
+                    </td>
+                </tr>
+                    `
+                })
+                .catch(error => {
+                    console.error('Error loading processing items:', error);
+                });
+        }
+
+        // Function to process items when the "Process" button is clicked
+        function processItems() {
+            fetch('process_items.php', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                loadNonZeroSoldProcessingItems(); // Reload the table after processing
+            })
+            .catch(error => {
+                console.error('Error processing items:', error);
+            });
+        }
+
+          // Check manager session and load items on page load
+          window.onload = () => {
+            checkManagerLogin();
+            loadNonZeroSoldProcessingItems();
+        };
+    </script>
+
+</body>
+</html>

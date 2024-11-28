@@ -1,0 +1,56 @@
+<!-- Name: Mahesh Pandey Id: 105108938 -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Logout</title>
+    <style>
+        body {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 50px;
+        }
+        .message {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thanks for visiting BuyOnline!<a href="buyonline.htm">BuyOnline</a></h1>
+        <p class="message" id="logoutMessage"></p>
+    </div>
+
+    <script>
+        // Get the managerId or customerId from the URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const managerId = urlParams.get('managerId');
+        const customerId = urlParams.get('customerId');
+
+        // Display the appropriate message based on whether it's a manager or a customer
+        if (managerId) {
+            document.getElementById('logoutMessage').innerText = `Thank you, ${managerId}. You have successfully logged out.`;
+        } else if (customerId) {
+            document.getElementById('logoutMessage').innerText = `Thank you, ${customerId}, for shopping with us. You have successfully logged out.`;
+        } else {
+            document.getElementById('logoutMessage').innerText = "You have successfully logged out.";
+        }
+
+        if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+    window.location.href = "buyonline.htm"; // Redirect to another page
+  }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+

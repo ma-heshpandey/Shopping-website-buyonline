@@ -1,0 +1,319 @@
+<!-- Name: Mahesh Pandey Id: 105108938 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Buying Page</title>
+    <style>
+        body {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+        table {
+            width: 80%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        .cart {
+            width: 50%;
+            margin-top: 20px;
+            border: 1px solid #888;
+        }
+        .cart th, .cart td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #555;
+        }
+        .total-row td {
+            font-weight: bold;
+            text-align: right;
+        }
+        .total-price {
+            color: #007BFF;
+            font-weight: bold;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button[disabled] {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+        .buttons {
+            margin-top: 10px;
+        }
+        .buttons button {
+            margin-left: 150px;;
+        }
+        .cart th {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h4 style="text-align:left;margin: 20px auto;"><a href="#" id="logoutLink">Log out</a></h4>
+    <hr>
+
+    <h1>Shopping Catalog</h1>
+
+    <!-- Catalog Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Item Number</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Add</th>
+            </tr>
+        </thead>
+        <tbody id="catalog">
+            <!-- Items are inserted as table body -->
+        </tbody>
+    </table>
+
+    <!-- Shopping Cart -->
+    <h2>Shopping Cart</h2>
+    <table class="cart">
+        <thead>
+            <tr>
+                <th>Item Number</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Remove</th>
+            </tr>
+        </thead>
+        <tbody id="cart">
+            <!-- Cart items are inserted as table body -->
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="3">Total:</td>
+                <td class="total-price" id="cartTotal">$0</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="buttons">
+        <button onclick="customerConfirmPurchase()" id="confirmBtn" disabled>Confirm Purchase</button>
+        <button onclick="customerCancelPurchase()" id="cancelBtn" disabled>Cancel Purchase</button>
+    </div>
+
+    <script>
+        let cart = [];
+        let catalog = [];
+    
+        // Function to check if customer is logged in
+        function checkCustomerLogin() {
+            fetch('customer_session.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.loggedIn) {
+                        // If not login, redirect to login
+                        window.location.href = 'login.htm';
+                    }
+                })
+                .catch(error => console.error('Error checking login:', error));
+        }
+
+
+        // Function to load catalog items from PHP
+        function loadCatalogForCustomer() {
+            fetch('catalog.php')
+                .then(response => response.json())
+                .then(data => {
+                    catalog = Array.isArray(data) ? data : [];
+    
+                    const catalogTable = document.getElementById('catalog');
+                    catalogTable.innerHTML = '';
+                    catalog.forEach(item => {
+                        catalogTable.innerHTML += `
+                            <tr>
+                                <td>${item.id}</td>
+                                <td>${item.name}</td>
+                                <td>${item.description}</td>
+                                <td>$${item.price}</td>
+                                <td>${item.quantityAvailable}</td>
+                                <td><button onclick="addToCustomerCart('${item.id}')">Add one to the cart</button></td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching catalog:', error);
+                });
+        }
+    
+        // Function to add items to the cart
+        function addToCustomerCart(itemId) {
+            const catalogItem = catalog.find(i => i.id === itemId);
+            if (!catalogItem || catalogItem.quantityAvailable <= 0) {
+                alert("Sorry, this item is not available for sale.");
+                return;
+            }
+
+            fetch('update_item.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `id=${itemId}&action=add`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const existingItem = cart.find(i => i.id === itemId);
+                    if (existingItem) {
+                        existingItem.quantity++;
+                    } else {
+                        cart.push({ id: itemId, price: catalogItem.price, quantity: 1 });
+                    }
+                    updateCartForCustomer();
+                    saveCart(); 
+                    loadCatalogForCustomer();  
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        // Function for removing items from the cart
+        function removeItemFromCart(itemId) {
+            const cartItem = cart.find(i => i.id === itemId);
+            if (!cartItem) return;
+
+            fetch('update_item.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `id=${itemId}&action=remove&quantity=${cartItem.quantity}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cart = cart.filter(i => i.id !== itemId);
+                    updateCartForCustomer();
+                    saveCart(); 
+                    loadCatalogForCustomer(); 
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        // Function to confirm purchase
+        function customerConfirmPurchase() {
+            fetch('confirm_customer_purchase.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `cart=${JSON.stringify(cart)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                cart = [];
+                updateCartForCustomer();
+                saveCart(); 
+                loadCatalogForCustomer();
+            });
+        }
+
+        // Function to cancel purchase
+        function customerCancelPurchase() {
+            fetch('cancel_customer_purchase.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `cart=${JSON.stringify(cart)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                cart = [];
+                updateCartForCustomer();
+                saveCart(); 
+                loadCatalogForCustomer();
+            });
+        }
+
+        // Logout and clear cart logic (reuse cancel purchase logic)
+        document.getElementById('logoutLink').addEventListener('click', function (e) {
+            e.preventDefault();
+            // Clear cart and update goods.xml via cancel purchase logic
+            fetch('cancel_customer_purchase.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `cart=${JSON.stringify(cart)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    // Clear cart from local storage
+                    localStorage.removeItem('cart');
+                    // Redirect to the logout page
+                    window.location.href = 'logout.php';
+                } else {
+                    alert('Error during logout: ' + data.message);
+                }
+            });
+        });
+
+        // Save and Load cart from localStorage functions
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+
+        function loadCartForCustomer() {
+            const savedCart = localStorage.getItem('cart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                updateCartForCustomer();
+            }
+        }
+
+        function updateCartForCustomer() {
+            const cartTable = document.getElementById('cart');
+            cartTable.innerHTML = '';
+            let total = 0;
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+
+                cartTable.innerHTML += `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>$${item.price}</td>
+                        <td>${item.quantity}</td>
+                        <td><button onclick="removeItemFromCart('${item.id}')">Remove from cart</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('cartTotal').innerText = `$${total}`;
+               // Disabling "Cancel Purchase" and "Confirm Purchase" button for empty cart
+            const cartIsEmpty = cart.length === 0;
+            cancelBtn.disabled = cartIsEmpty;
+            confirmBtn.disabled = cartIsEmpty;
+       
+        }
+
+        window.onload = () => {
+            checkCustomerLogin();
+            loadCatalogForCustomer();
+            loadCartForCustomer();
+        };
+
+        setInterval(loadCatalogForCustomer, 10000);
+    </script>
+    
+</body>

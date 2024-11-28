@@ -1,0 +1,187 @@
+<!-- Name: Mahesh Pandey Id: 105108938 -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Item Listing</title>
+    <style>
+        body {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .form-container {
+            display: inline-block;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            margin: 0 auto;
+            border-spacing: 10px;
+        }
+        td {
+            padding: 5px;
+        }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 5px;
+        }
+        textarea {
+            height: 20px; 
+            resize: vertical; 
+            overflow-y: scroll; 
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100px; 
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .reset-btn {
+            background-color: #6c757d;
+            width: 100px; 
+        }
+        .reset-btn:hover {
+            background-color: #5a6268;
+        }
+        .message {
+            color: green;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+
+        .nav-links a {
+            margin: 0 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="nav-links">
+            <a href="listing.htm">Listing</a>
+            <a href="processing.htm">Processing</a>
+            <a href="logout.php">Logout</a>
+        </div>
+        <hr>
+    </div>
+
+    <h1>Add new item</h1>
+    <div class="form-container">
+        <form id="listingForm" action="listing.php" method="post" onsubmit="return itemListing()">
+            <table>
+                <tr>
+                    <td><label for="name">Item name:</label></td>
+                    <td><input type="text" id="name" name="name" required></td>
+                </tr>
+                <tr>
+                    <td><label for="price">Item price:</label></td>
+                    <td><input type="number" id="price" name="price" min="0" step="0.01" required></td>
+                </tr>
+                <tr>
+                    <td><label for="quantity">Item quantity:</label></td>
+                    <td><input type="number" id="quantity" name="quantity" min="1" required></td>
+                </tr>
+                <tr>
+                    <td><label for="description">Item description:</label></td>
+                    <td><textarea id="description" name="description" required></textarea></td>
+                </tr>
+                <tr style="background-color:#6c757d">
+                    <td colspan="2" style="text-align:center;">
+                        <button type="submit">Add Item</button>
+                        <button type="reset" class="reset-btn">Reset</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <!-- Success and Error Messages -->
+        <p class="message" id="successMessage" style="display:none;"></p>
+        <p class="error" id="errorMessage" style="display:none;"></p>
+    </div>
+
+    <script>
+
+        // Check if manager is logged in
+        function checkManagerLogin() {
+            fetch('manager_session.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.loggedIn) {
+                        // If the manager is not logged in, redirect to login page
+                        window.location.href = 'mlogin.htm';
+                    }
+                })
+                .catch(error => console.error('Error checking login:', error));
+        }
+
+        // Main JS function that checks the validation and request backend for adding new item.
+        function itemListing() {
+            var name = document.getElementById('name').value;
+            var price = document.getElementById('price').value;
+            var quantity = document.getElementById('quantity').value;
+            var description = document.getElementById('description').value;
+
+        
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+
+            // Validate the inputs
+            if (name === '' || price === '' || quantity === '' || description === '') {
+                document.getElementById('errorMessage').innerText = 'All fields are required!';
+                document.getElementById('errorMessage').style.display = 'block';
+                return false;
+            }
+
+            // Create an AJAX request
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'listing.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+            // On request complete
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        // Hide the form and display the success message with item number
+                        document.getElementById('listingForm').reset();
+                        document.getElementById('successMessage').innerText = 'The item has been listed in the system, and the item number is: ' + response.itemNumber;
+                        document.getElementById('successMessage').style.display = 'block';
+                    } else {
+                        document.getElementById('errorMessage').innerText = 'Error adding item. Please try again.';
+                        document.getElementById('errorMessage').style.display = 'block';
+                    }
+                }
+            };
+
+            // Preparing the data to send
+            var data = 'name=' + encodeURIComponent(name) +
+                       '&price=' + encodeURIComponent(price) +
+                       '&quantity=' + encodeURIComponent(quantity) +
+                       '&description=' + encodeURIComponent(description);
+
+            // Send the request
+            xhr.send(data);
+
+            return false; // Prevent default form submission
+        }
+
+        // Check manager session on page load
+        window.onload = checkManagerLogin;
+    </script>
+</body>
+</html>
